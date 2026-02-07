@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h1>Důchodová kalkulačka</h1>
+  <input type="number" id="plat" placeholder="Zadej svůj plat" value="30000">
+  <button onclick="spocitej()">Spočítat</button>
+  
+  <h2 id="vysledek">---</h2>
+
+  <script>
+    async function spocitej() {
+      const plat = document.getElementById('plat').value;
+      
+      // Voláme náš backend
+      const odpoved = await fetch(`/api/calculate?plat=${plat}`);
+      const data = await odpoved.json();
+      
+      // Zobrazíme výsledek
+      document.getElementById('vysledek').innerText = 
+        "Odhad: " + data.odhadDuchodu + " Kč";
+    }
+  </script>
+</body>
+</html>
