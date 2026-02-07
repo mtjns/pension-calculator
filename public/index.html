@@ -1,24 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moje Důchodová Kalkulačka</title>
+    <link rel="stylesheet" href="style.css">
+</head>
 <body>
-  <h1>Důchodová kalkulačka</h1>
-  <input type="number" id="plat" placeholder="Zadej svůj plat" value="30000">
-  <button onclick="spocitej()">Spočítat</button>
-  
-  <h2 id="vysledek">---</h2>
 
-  <script>
-    async function spocitej() {
-      const plat = document.getElementById('plat').value;
-      
-      // Voláme náš backend
-      const odpoved = await fetch(`/api/calculate?plat=${plat}`);
-      const data = await odpoved.json();
-      
-      // Zobrazíme výsledek
-      document.getElementById('vysledek').innerText = 
-        "Odhad: " + data.odhadDuchodu + " Kč";
-    }
-  </script>
+    <div class="container">
+        <header>
+            <h1>💸 Důchodové Rozcestí</h1>
+            <p>Porovnejte si, co se vyplatí, než půjdete do důchodu.</p>
+        </header>
+
+        <div class="calculator-box">
+            <div class="input-group">
+                <label>Váš současný věk</label>
+                <input type="number" id="age" value="62" min="50" max="70">
+            </div>
+            
+            <div class="input-group">
+                <label>Hrubá měsíční mzda (průměr)</label>
+                <input type="number" id="salary" value="45000" step="1000">
+            </div>
+
+            <div class="input-group">
+                <label>Odpracované roky (pojištění)</label>
+                <input type="number" id="years" value="35">
+            </div>
+
+            <button onclick="spocitejDuchod()" id="btn-calc">Spočítat Scénáře</button>
+        </div>
+
+        <div id="loading" class="hidden">Počítám varianty...</div>
+        
+        <div class="results-grid hidden" id="results">
+            </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
