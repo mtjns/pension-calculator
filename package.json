@@ -1,0 +1,20 @@
+{
+  "name": "pension-calculator",
+  "version": "1.0.0",
+  "description": "Web app for calclating pension depending on certain factors",
+  "homepage": "https://github.com/mtjns/pension-calculator#readme",
+  "bugs": {
+    "url": "https://github.com/mtjns/pension-calculator/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mtjns/pension-calculator.git"
+  },
+  "license": "ISC",
+  "author": "Matěj Jansa",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
