@@ -1,15 +1,15 @@
 // calculate.js
 
 // Konstanty
-const today = new Date();
 const ZAKLADNI_VYMERA = 4440;
 const REDUKCNI_HRANICE_1 = 19346;
 const REDUKCNI_HRANICE_2 = 175868;
-const MAXPREDCASNY = 3;
+const MAXPREDCASNY = 3; // Maximální počet let, o které lze odejít dříve do důchodu
 const KOEFICIENT_NAHRADNI_DOBA = 0.8; // Každý rok náhradní doby se počítá jako část odpracovaného roku
 
+const today = new Date();
 
-
+// Validace inputu
 function validateInput(hrubaMzda, odpracovaneRoky, rocnik, pocetDeti, nahradniRoky, pohlavi) {
     if (hrubaMzda < 0 || odpracovaneRoky < 0 || pocetDeti < 0 || nahradniRoky < 0) {
         return 'Všechny číselné hodnoty musí být nezáporné.'
@@ -20,13 +20,14 @@ function validateInput(hrubaMzda, odpracovaneRoky, rocnik, pocetDeti, nahradniRo
     else if (!rocnik || rocnik < 1920 || rocnik > today.getFullYear() - 15) {
         return 'Neplatný ročník narození. Zadejte číslo mezi 1920 a ' + (today.getFullYear() - 15) + "."
     }
-    else if (pohlavi !== 'M' && pohlavi !== 'Z') {
-        return 'Neplatné pohlaví. Zadejte "M" pro muže nebo "Z" pro ženy.'
+    else if (pohlavi !== 'M' && pohlavi !== 'F') {
+        return 'Neplatné pohlaví. Zadejte Z "M" pro muže nebo "F" pro ženy.'
     }
     return null; // No errors
 
 }
 
+// Kalkuluje věk odchodu do důchodu
 function getDuchodovyVek(rocnik, pohlavi, pocetDeti) {
     if (rocnik >= 1971) return 65.0; // Nejvyšší věk pro nejmladší generace
 
@@ -47,6 +48,7 @@ function getDuchodovyVek(rocnik, pohlavi, pocetDeti) {
     }
 }
 
+// Hlavní výpočet důchodu
 function spocitejDuchod(mzda, roky, kraceni = 0, bonusCoef = 0, pocetDeti = 0) {
     let redukovany = mzda;
     let bonusVychovne = pocetDeti * 500;
@@ -66,10 +68,14 @@ function spocitejDuchod(mzda, roky, kraceni = 0, bonusCoef = 0, pocetDeti = 0) {
     return Math.floor(ZAKLADNI_VYMERA + procentni + bonusVychovne);
 }
 
+
+// API Handler
 export default function handler(request, response) {
-    // FIXME: REMOVE IN PRODUCTION - CORS PROXY ONLY FOR LOCAL DEV
-    response.setHeader('Access-Control-Allow-Credentials', true);
-    response.setHeader('Access-Control-Allow-Origin', '*');
+    // Povolení CORS pro vývoj 
+    if (process.env.NODE_ENV === 'development') {
+        response.setHeader('Access-Control-Allow-Credentials', true);
+        response.setHeader('Access-Control-Allow-Origin', '*');
+    }
 
     const { salary, years, birthYear, gender, children, substituteYears } = request.query;
 
@@ -101,7 +107,7 @@ export default function handler(request, response) {
     // --- 4. GENEROVÁNÍ SCÉNÁŘŮ ---
     let scenarios = [];
 
-    // A) UŽ MÁ NÁROK (nebo přesluhuje)
+    // A) UŽ MÁ NÁROK
     if (rokyDoDuchodu <= 0) {
         const resultNow = spocitejDuchod(hrubaMzda, efektivniDoba, 0, 0, pocetDeti);
         const resultSoubeh = resultNow;
@@ -109,25 +115,25 @@ export default function handler(request, response) {
 
         scenarios = [
             {
-                id: "now",
+                id: "now_pension",
                 title: "Řádný odchod do důchodu (Teď)",
                 amount: resultNow,
                 desc: "Okamžitý odchod. Máte splněn věk i dobu pojištění.",
                 type: "neutral" // Standardní volba
             },
             {
-                id: "work_pension",
+                id: "now_work_pension",
                 title: "Práce + Důchod (Souběh)",
                 amount: resultSoubeh,
                 desc: "Pobíráte důchod i mzdu současně.",
                 type: "best"
             },
             {
-                id: "defer",
+                id: "now_defer",
                 title: "Práce rok navíc (bez důchodu)",
                 amount: resultDeferred,
                 desc: "Pokud rok **nebudete** pobírat důchod a budete pracovat, získáte **bonus cca 6 %** natrvalo.",
-                type: "neutral" // Žlutá
+                type: "neutral"
             }
         ];
     }
@@ -139,7 +145,7 @@ export default function handler(request, response) {
         const resultRegular = spocitejDuchod(hrubaMzda, celkovaDoba, 0);
 
         scenarios.push({
-            id: "regular",
+            id: "future_pension",
             title: `Řádný důchod`,
             amount: resultRegular,
             desc: `Váš cílový důchod v roce ${Math.floor(today.getFullYear() + rokyDoDuchodu)}.`,
@@ -152,7 +158,7 @@ export default function handler(request, response) {
             const resultEarly = spocitejDuchod(hrubaMzda, efektivniDoba, sankce);
 
             scenarios.push({
-                id: "early",
+                id: "early_pension",
                 title: "Předčasný důchod (Teď)",
                 amount: resultEarly,
                 desc: `Odchod o **${rokyDoDuchodu.toFixed(1)} let dříve**. Důchod bude **trvale nižší** o sankci.`,
@@ -175,7 +181,7 @@ export default function handler(request, response) {
         if (rokyDoDuchodu <= 5) {
             const resultMax = spocitejDuchod(hrubaMzda, celkovaDoba + 1, 0, 0.06);
             scenarios.push({
-                id: "defer",
+                id: "future_defer",
                 title: "Práce rok navíc (Přesluhování)",
                 amount: resultMax,
                 desc: "Pokud v budoucnu odložíte důchod o 1 rok, získáte **bonus cca 6 %**.",
