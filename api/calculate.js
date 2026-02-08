@@ -3,6 +3,7 @@
 // Konstanty
 const ZAKLADNI_VYMERA = 4440;
 const REDUKCNI_HRANICE_1 = 19346;
+const KOEF_REDUKNCI_HRANICE_1 = 0.26;
 const REDUKCNI_HRANICE_2 = 175868;
 const MAXPREDCASNY = 3; // Maximální počet let, o které lze odejít dříve do důchodu
 const KOEFICIENT_NAHRADNI_DOBA = 0.8; // Každý rok náhradní doby se počítá jako část odpracovaného roku
@@ -10,21 +11,19 @@ const KOEFICIENT_NAHRADNI_DOBA = 0.8; // Každý rok náhradní doby se počít�
 const today = new Date();
 
 // Validace inputu
-function validateInput(hrubaMzda, odpracovaneRoky, rocnik, pocetDeti, nahradniRoky, pohlavi) {
-    if (hrubaMzda < 0 || odpracovaneRoky < 0 || pocetDeti < 0 || nahradniRoky < 0) {
-        return 'Všechny číselné hodnoty musí být nezáporné.'
+function validateInput(vymerovaciZaklad, odpracovaneRoky, rocnik, pocetDeti, nahradniRoky, pohlavi) {
+    if (vymerovaciZaklad < 0 || odpracovaneRoky < 0 || pocetDeti < 0 || nahradniRoky < 0) {
+        return new Error('Všechny číselné hodnoty musí být nezáporné.')
     }
     else if (odpracovaneRoky - 1 > today.getFullYear() - rocnik) {
-        return 'Počet odpracovaných let nemůže být větší než váš aktuální věk.'
+        return new Error('Počet odpracovaných let nemůže být větší než váš aktuální věk.')
     }
     else if (!rocnik || rocnik < 1920 || rocnik > today.getFullYear() - 15) {
-        return 'Neplatný ročník narození. Zadejte číslo mezi 1920 a ' + (today.getFullYear() - 15) + "."
+        return new Error('Neplatný ročník narození. Zadejte číslo mezi 1920 a ' + (today.getFullYear() - 15) + ".")
     }
     else if (pohlavi !== 'M' && pohlavi !== 'F') {
-        return 'Neplatné pohlaví. Zadejte Z "M" pro muže nebo "F" pro ženy.'
+        return new Error('Neplatné pohlaví. Zadejte Z "M" pro muže nebo "F" pro ženy.')
     }
-    return null; // No errors
-
 }
 
 // Kalkuluje věk odchodu do důchodu
@@ -48,70 +47,52 @@ function getDuchodovyVek(rocnik, pohlavi, pocetDeti) {
     }
 }
 
-// Hlavní výpočet důchodu
-function spocitejDuchod(mzda, roky, kraceni = 0, bonusCoef = 0, pocetDeti = 0) {
-    let redukovany = mzda;
-    let bonusVychovne = pocetDeti * 500;
-    if (mzda > REDUKCNI_HRANICE_1) {
-        if (mzda > REDUKCNI_HRANICE_2) {
-            redukovany = REDUKCNI_HRANICE_1 + (REDUKCNI_HRANICE_2 - REDUKCNI_HRANICE_1) * 0.26;
+// Výpočet redukovaného základu
+function getRedukovanyZaklad(vymerovacizaklad) {
+    if (vymerovacizaklad > REDUKCNI_HRANICE_1) {
+        if (vymerovacizaklad > REDUKCNI_HRANICE_2) {
+            // Pokud je základ vyšší než druhá redukční hranice
+            return REDUKCNI_HRANICE_1 + (REDUKCNI_HRANICE_2 - REDUKCNI_HRANICE_1) * KOEF_REDUKNCI_HRANICE_1;
         } else {
-            redukovany = REDUKCNI_HRANICE_1 + (mzda - REDUKCNI_HRANICE_1) * 0.26;
+            // Pokud je základ mezi první a druhou redukční hranicí
+            return REDUKCNI_HRANICE_1 + (vymerovacizaklad - REDUKCNI_HRANICE_1) * KOEF_REDUKNCI_HRANICE_1;
         }
+    } else {
+        return vymerovacizaklad;
     }
-
-    let procentni = redukovany * (roky * 0.015);
-
-    if (kraceni > 0) procentni = procentni * (1 - kraceni);
-    if (bonusCoef > 0) procentni = procentni * (1 + bonusCoef);
-
-    return Math.floor(ZAKLADNI_VYMERA + procentni + bonusVychovne);
 }
 
+// Hlavní výpočet důchodu
+function spocitejDuchod(vymerovacizaklad, odpracovaneRoky, kraceneRoky = 0, bonusKoef = 0, pocetDeti = 0) {
+    // Klasický výpočet důchodu: základní výměra + procentní výměra
+    let redukovanyZaklad = getRedukovanyZaklad(vymerovacizaklad);
+    let procentniVymera = redukovanyZaklad * (odpracovaneRoky * 0.015);
 
-// API Handler
-export default function handler(request, response) {
-    // Povolení CORS pro vývoj 
-    if (process.env.NODE_ENV === 'development') {
-        response.setHeader('Access-Control-Allow-Credentials', true);
-        response.setHeader('Access-Control-Allow-Origin', '*');
-    }
+    // Bonus za děti (vychovné)
+    let bonusVychovne = pocetDeti * 500;
 
-    const { salary, years, birthYear, gender, children, substituteYears } = request.query;
+    // Krácení za předčasný odchod a bonus za odložení důchodu
+    if (kraceneRoky > 0) procentniVymera *= (1 - kraceneRoky);
+    if (bonusKoef > 0) procentniVymera *= (1 + bonusKoef);
 
-    // 1. Parsování inputu
-    const hrubaMzda = parseFloat(salary) || 0;
-    const odpracovaneRoky = parseFloat(years) || 0;
-    const rocnik = parseFloat(birthYear);
-    const pocetDeti = parseFloat(children) || 0;
-    const nahradniRoky = parseFloat(substituteYears) || 0;
-    const pohlavi = gender || 'M';
+    celkovyDuchod = ZAKLADNI_VYMERA + procentniVymera + bonusVychovne;
+    return Math.floor(celkovyDuchod);
+}
 
-    const aktualniVek = today.getFullYear() - rocnik;
+// Generování scénářů pro různé možnosti odchodu do důchodu
+function getScenare(vymerovaciZaklad, odpracovaneRoky, rocnik, pocetDeti, nahradniRoky, pohlavi) {
+    scenarios = [];
 
-    // Validace inputu
-    let validationError = validateInput(hrubaMzda, odpracovaneRoky, rocnik, pocetDeti, nahradniRoky, pohlavi)
-    if (validationError) {
-        response.status(400).json({ error: validationError });
-        return;
-    }
-
-    // --- 2. Logika důchodového věku ---
     const duchodovyVek = getDuchodovyVek(rocnik, pohlavi, pocetDeti);
+    const aktualniVek = today.getFullYear() - rocnik;
     const rokyDoDuchodu = duchodovyVek - aktualniVek;
-
-    // --- 3. Výpočet náhradní doby a bonusů ---
     const efektivniDoba = odpracovaneRoky + nahradniRoky * KOEFICIENT_NAHRADNI_DOBA;
-
-
-    // --- 4. GENEROVÁNÍ SCÉNÁŘŮ ---
-    let scenarios = [];
 
     // A) UŽ MÁ NÁROK
     if (rokyDoDuchodu <= 0) {
-        const resultNow = spocitejDuchod(hrubaMzda, efektivniDoba, 0, 0, pocetDeti);
+        const resultNow = spocitejDuchod(vymerovaciZaklad, efektivniDoba, 0, 0, pocetDeti);
         const resultSoubeh = resultNow;
-        const resultDeferred = spocitejDuchod(hrubaMzda, efektivniDoba + 1, 0, 0.06, pocetDeti);
+        const resultDeferred = spocitejDuchod(vymerovaciZaklad, efektivniDoba + 1, 0, 0.06, pocetDeti);
 
         scenarios = [
             {
@@ -142,7 +123,7 @@ export default function handler(request, response) {
     else {
         // 1. Řádný
         const celkovaDoba = efektivniDoba + rokyDoDuchodu; // Doba kterou se bude počítat řádný důchod (včetně náhradní doby)
-        const resultRegular = spocitejDuchod(hrubaMzda, celkovaDoba, 0);
+        const resultRegular = spocitejDuchod(vymerovaciZaklad, celkovaDoba, 0);
 
         scenarios.push({
             id: "future_pension",
@@ -155,7 +136,7 @@ export default function handler(request, response) {
         // 2. Předčasný
         if (rokyDoDuchodu <= MAXPREDCASNY) { // Předčasný důchod je možný pouze do určitého limitu
             const sankce = (rokyDoDuchodu * 6) / 100;
-            const resultEarly = spocitejDuchod(hrubaMzda, efektivniDoba, sankce);
+            const resultEarly = spocitejDuchod(vymerovaciZaklad, efektivniDoba, sankce);
 
             scenarios.push({
                 id: "early_pension",
@@ -179,7 +160,7 @@ export default function handler(request, response) {
 
         // 3. Přesluhování (pouze < 5 let do důchodu)
         if (rokyDoDuchodu <= 5) {
-            const resultMax = spocitejDuchod(hrubaMzda, celkovaDoba + 1, 0, 0.06);
+            const resultMax = spocitejDuchod(vymerovaciZaklad, celkovaDoba + 1, 0, 0.06);
             scenarios.push({
                 id: "future_defer",
                 title: "Práce rok navíc (Přesluhování)",
@@ -189,6 +170,52 @@ export default function handler(request, response) {
             });
         }
     }
+    return scenarios;
+}
 
+// Parsování inputu z query parametrů
+function parseInput(request) {
+    try {
+        const { salary, years, birthYear, gender, children, substituteYears } = request.query;
+    }
+    catch (error) {
+        console.error("Chyba při parsování query parametrů:", error);
+        throw new Error("Neplatné parametry. Ujistěte se, že všechny vstupy jsou správně zadány.");
+    }
+    // 1. Parsování inputu
+    const vymerovaciZaklad = parseFloat(salary) || 0;
+    const odpracovaneRoky = parseFloat(years) || 0;
+    const rocnik = parseFloat(birthYear);
+    const pocetDeti = parseFloat(children) || 0;
+    const nahradniRoky = parseFloat(substituteYears) || 0;
+    const pohlavi = gender || 'M';
+    return { vymerovaciZaklad, odpracovaneRoky, rocnik, pocetDeti, nahradniRoky, pohlavi };
+}
+
+
+// API Handler
+export default function handler(request, response) {
+    // Povolení CORS pro vývoj - localhost
+    if (process.env.NODE_ENV === 'development') {
+        response.setHeader('Access-Control-Allow-Credentials', true);
+        response.setHeader('Access-Control-Allow-Origin', '*');
+    }
+
+    try {
+        // Parsování inputu
+        const { vymerovaciZaklad, odpracovaneRoky, rocnik, pocetDeti, nahradniRoky, pohlavi } = parseInput(request);
+
+        // Validace inputu
+        validateInput(vymerovaciZaklad, odpracovaneRoky, rocnik, pocetDeti, nahradniRoky, pohlavi)
+    } catch (error) {
+        console.error("Chyba při zpracování požadavku:", error);
+        response.status(400).json({ error: "Neplatné parametry. Ujistěte se, že všechny vstupy jsou správně zadány." });
+        return;
+    }
+
+    // Generování odpovědi
+    let scenarios = getScenare(vymerovaciZaklad, odpracovaneRoky, rocnik, pocetDeti, nahradniRoky, pohlavi);
+
+    // Odeslání odpovědi
     response.status(200).json({ scenarios });
 }
