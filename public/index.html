@@ -1,44 +1,108 @@
 <!DOCTYPE html>
 <html lang="cs">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Důchodová Kalkulačka</title>
+    <title>Důchodová kalkulačka 2025</title>
+    <meta name="description" content="Spočítejte si starobní důchod. Srovnání řádného a předčasného důchodu.">
+
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
-    <div class="container">
+    <div class="main-wrapper">
         <header>
-            <h1>Důchodové Rozcestí</h1>
-            <p>Porovnejte si, co se vyplatí, než půjdete do důchodu.</p>
+            <h1>Důchodová kalkulačka</h1>
+            <p class="subtitle">Zjistěte, kdy můžete odejít do důchodu a kolik dostanete.</p>
         </header>
 
-        <div class="calculator-box">
-            <div class="input-group">
-                <label>Váš současný věk</label>
-                <input type="number" id="age" value="62" min="50" max="70">
-            </div>
-            
-            <div class="input-group">
-                <label>Hrubá měsíční mzda (průměr)</label>
-                <input type="number" id="salary" value="45000" step="1000">
+        <main class="calculator-card">
+
+            <div class="input-grid">
+                <div class="input-group">
+                    <label for="birthYear">Ročník narození</label>
+                    <input type="number" id="birthYear" placeholder="např. 1965" min="1920">
+                </div>
+
+                <div class="input-group">
+                    <label for="salary">Hrubá mzda</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="salary" value="42000" step="500" min="0">
+                        <span class="currency">Kč</span>
+                    </div>
+                    <div class="hint">Průměrná za odpracované roky</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="years">Odpracované roky</label min="0">
+                    <input type="number" id="years" value="35">
+                    <div class="hint">Zaměstnání a podnikání</div>
+                </div>
             </div>
 
-            <div class="input-group">
-                <label>Odpracované roky (pojištění)</label>
-                <input type="number" id="years" value="35">
+            <button class="advanced-toggle" onclick="toggleAdvanced()" aria-expanded="false" id="toggleBtn">
+                <span>Upřesnit výpočet (Děti, Studium, Vojna)</span>
+                <svg id="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+
+            <div id="advanced-options" class="advanced-content hidden">
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="gender">Pohlaví</label>
+                        <select id="gender">
+                            <option value="M">Muž</option>
+                            <option value="F">Žena</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="children">Vychované děti</label>
+                        <input type="number" id="children" value="0" min="0">
+                        <small class="hint">+500 Kč k důchodu</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="substituteYears">Náhradní doby (roky)</label>
+                        <input type="number" id="substituteYears" value="0" min="0">
+                        <small class="hint">Studium, vojna (z 80 %)</small>
+                    </div>
+                </div>
             </div>
 
-            <button onclick="spocitejDuchod()" id="btn-calc">Spočítat Scénáře</button>
-        </div>
-
-        <div id="loading" class="hidden">Počítám varianty...</div>
-        
-        <div class="results-grid hidden" id="results">
+            <div class="action-area">
+                <button onclick="getDuchod()" id="btn-calc" class="primary-btn">Spočítat možnosti</button>
             </div>
+
+            <div id="loading" class="loading-state hidden">
+                <div class="spinner"></div>
+                <span>Počítám varianty...</span>
+            </div>
+
+            <div class="results-grid hidden" id="results"></div>
+
+        </main>
+
+        <footer>
+            <p>Výpočet je orientační a nenahrazuje oficiální rozhodnutí <a href="https://www.cssz.cz" target="_blank"
+                    rel="noopener noreferrer">ČSSZ</a>.</p>
+            <p>Pro přesnější odhad navštivte <a href="https://www.mpsv.cz/kalkulacky" target="_blank"
+                    rel="noopener noreferrer">oficiální
+                    kalkulačku ČSSZ</a>.</p>
+            <small>Vytvořil Matěj Jansa</small>
+        </footer>
     </div>
 
     <script src="script.js"></script>
 </body>
+
 </html>
