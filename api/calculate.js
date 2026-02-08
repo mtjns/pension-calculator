@@ -84,7 +84,8 @@ export default function handler(request, response) {
     const aktualniVek = today.getFullYear() - rocnik;
 
     // Validace inputu
-    if (validationError = validateInput(hrubaMzda, odpracovaneRoky, rocnik, pocetDeti, nahradniRoky, pohlavi)) {
+    let validationError = validateInput(hrubaMzda, odpracovaneRoky, rocnik, pocetDeti, nahradniRoky, pohlavi)
+    if (validationError) {
         response.status(400).json({ error: validationError });
         return;
     }
