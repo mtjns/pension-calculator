@@ -20,9 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderAll();
 
+    // Global Click Listener for "Click Away" logic
     document.addEventListener('click', (e) => {
+        // If clicking inside a segment row, do nothing (handled by specific listeners)
         if (e.target.closest('.segment-row')) return;
 
+        // If clicking outside, close all expanded segments
         document.querySelectorAll('.segment-row.expanded').forEach(row => {
             row.classList.remove('expanded');
         });
@@ -153,15 +156,13 @@ function updateSegment(index, field, value) {
     }
 
     // If changing type, we need full re-render (to show/hide inputs)
-    // We try to keep it open
     if (field === 'type') {
         renderList();
         const row = document.getElementById(`seg-row-${index}`);
         if (row) row.classList.add('expanded');
+        recalculateUI(); // Trigger UI recalc on type change
     } else {
         // Just update numbers, refresh header text manually or full render
-        // Simplest is full render to keep sync, but might lose focus.
-        // Let's do a soft update of UI stats and header text to avoid closing edit
         recalculateUI();
         refreshHeader(index);
     }
@@ -368,36 +369,50 @@ async function spocitejDuchod() {
     const gender = document.querySelector('input[name="gender"]:checked').value;
     const children = document.getElementById('children').value;
 
-    let totalWorkYears = 0;
-    let totalSubstituteYears = 0;
-    let weightedSalarySum = 0;
+    // Build Payload with Dates
+    const payloadSegments = [];
+    let currentDate = new Date(birthDate);
 
-    segments.forEach(s => {
-        if (s.type === 'work') {
-            totalWorkYears += s.duration;
-            weightedSalarySum += (s.salary * s.duration);
-        } else if (s.type === 'study') {
-            totalSubstituteYears += s.duration;
-        }
-    });
+    // Start sequence from birth date
+    // Note: Usually timeline starts later, but we use strict birth date sequence
 
-    const avgSalary = totalWorkYears > 0 ? Math.round(weightedSalarySum / totalWorkYears) : 0;
+    for (const seg of segments) {
+        const start = new Date(currentDate);
+        // Add duration years to current date
+        currentDate.setFullYear(currentDate.getFullYear() + seg.duration);
+        const end = new Date(currentDate);
+
+        payloadSegments.push({
+            type: seg.type,
+            startDate: start.toISOString().split('T')[0],
+            endDate: end.toISOString().split('T')[0],
+            salary: seg.salary
+        });
+    }
+
+    const payload = {
+        birthDate: birthDate,
+        gender: gender,
+        children: parseInt(children),
+        segments: payloadSegments
+    };
 
     document.getElementById('results').classList.add('hidden');
     document.getElementById('loading').classList.remove('hidden');
 
     try {
-        const params = new URLSearchParams({
-            salary: avgSalary,
-            years: totalWorkYears,
-            birthDate,
-            gender,
-            children,
-            substituteYears: totalSubstituteYears
+        const response = await fetch('/api/calculate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
         });
 
-        const response = await fetch(`/api/calculate?${params.toString()}`);
-        if (!response.ok) throw new Error("Chyba serveru.");
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || "Chyba serveru.");
+        }
 
         const data = await response.json();
         renderResults(data.scenarios);
@@ -422,6 +437,7 @@ function renderResults(scenarios) {
             ? `${scenar.amount.toLocaleString('cs-CZ')} Kč`
             : 'Není možné';
 
+        // Bold formatting
         const desc = scenar.desc.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
         div.innerHTML = `
