@@ -5,14 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Důchodová kalkulačka 2025</title>
-    <meta name="description" content="Spočítejte si starobní důchod. Srovnání řádného a předčasného důchodu.">
-
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -20,102 +17,116 @@
     <div class="main-wrapper">
         <header>
             <h1>Důchodová kalkulačka</h1>
-            <p class="subtitle">Zjistěte, kdy můžete odejít do důchodu a kolik dostanete.</p>
+            <p class="subtitle">Poskládejte si cestu od narození po důchod.</p>
         </header>
 
-        <main class="calculator-card">
+        <!-- Moved File Upload Here -->
+        <div class="file-upload-container">
+            <label for="fileUpload" class="upload-label">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                Nahrát data (IDA)
+            </label>
+            <input type="file" id="fileUpload" accept=".xml,.pdf,.json">
+            <span class="upload-hint">Podporuje XML, PDF z portálu ČSSZ</span>
+        </div>
 
+        <!-- 1. OSOBNÍ ÚDAJE -->
+        <main class="calculator-card">
+            <h2 class="section-heading">Vaše údaje</h2>
             <div class="input-grid">
                 <div class="input-group">
                     <label for="birthDate">Datum narození</label>
                     <input type="date" id="birthDate">
                 </div>
 
-                <!-- Gender Radio Input -->
                 <div class="input-group">
                     <label>Pohlaví</label>
                     <div class="radio-group">
                         <label class="radio-label">
-                            <input type="radio" name="gender" value="M" checked>
+                            <input type="radio" name="gender" value="M" checked onchange="recalculateUI()">
                             <span>Muž</span>
                         </label>
                         <label class="radio-label">
-                            <input type="radio" name="gender" value="F">
+                            <input type="radio" name="gender" value="F" onchange="recalculateUI()">
                             <span>Žena</span>
                         </label>
                     </div>
                 </div>
 
                 <div class="input-group">
-                    <label for="children">Vychované děti</label>
-                    <input type="number" id="children" value="0" min="0">
-                    <div class="hint">+500 Kč k důchodu</div>
+                    <label for="children">Počet dětí</label>
+                    <select id="children" onchange="recalculateUI()">
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5 a více</option>
+                    </select>
                 </div>
             </div>
-
-            <!-- Segment Builder Section -->
-            <div class="segments-section">
-                <h2 class="section-title">Vaše cesta do důchodu</h2>
-
-                <!-- Visual Timeline -->
-                <div class="timeline-container" id="timelineBar">
-                    <!-- Segments will be injected here -->
-                </div>
-
-                <!-- Segment List -->
-                <div id="segmentList" class="segment-list">
-                    <!-- Segment items will be injected here -->
-                </div>
-
-                <!-- Add Segment Form -->
-                <div class="add-segment-form">
-                    <div class="form-row">
-                        <select id="newSegType">
-                            <option value="work">Práce (HPP/OSVČ)</option>
-                            <option value="study">Studium (před 2010)</option>
-                            <option value="none">Nic / Evidence ÚP</option>
-                        </select>
-                        <input type="number" id="newSegDuration" placeholder="Roky" min="0" step="1">
-                        <input type="number" id="newSegSalary" placeholder="Hrubá mzda" min="0" step="500">
-                        <button onclick="addSegment()" class="btn-add">+</button>
-                    </div>
-                </div>
-
-                <!-- Summary of calculated values (Read-only) -->
-                <div class="summary-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">Celkem odpracováno:</span>
-                        <span class="stat-value" id="displayYears">0 let</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Průměrná mzda:</span>
-                        <span class="stat-value" id="displaySalary">0 Kč</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Náhradní doba:</span>
-                        <span class="stat-value" id="displaySubstitute">0 let</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="file-upload-container">
-                <label for="fileUpload">Nahrát data ze souboru (IDA)</label>
-                <input type="file" id="fileUpload" accept=".xml,.pdf,.json">
-                <div class="hint">Tato funkce zatím není aktivní.</div>
-            </div>
-
-            <div class="action-area">
-                <button onclick="spocitejDuchod()" id="btn-calc" class="primary-btn">Spočítat možnosti</button>
-            </div>
-
-            <div id="loading" class="loading-state hidden">
-                <div class="spinner"></div>
-                <span>Počítám varianty...</span>
-            </div>
-
-            <div class="results-grid hidden" id="results"></div>
-
         </main>
+
+        <!-- 2. CESTA DO DŮCHODU (Builder) -->
+        <div class="calculator-card">
+            <h2 class="section-heading">Vaše cesta do důchodu</h2>
+
+            <!-- Timeline Visual -->
+            <div class="timeline-header">
+                <span id="labelBirth">Narození</span>
+                <span id="labelPension">Důchod</span>
+            </div>
+            <div class="timeline-bar" id="timelineBar">
+                <!-- Segments injected here -->
+            </div>
+
+            <!-- Segment List -->
+            <div id="segmentList" class="segment-list">
+                <!-- Items injected here by JS -->
+            </div>
+
+            <!-- Add Button -->
+            <div class="add-btn-container">
+                <button class="btn-add-segment" onclick="addNewSegment()">
+                    <span>+ Přidat segment</span>
+                </button>
+            </div>
+
+            <!-- Warning -->
+            <div id="durationWarning" class="warning-msg">
+                Cesta je delší než čas do důchodu o <strong>2 roky</strong>.
+            </div>
+
+            <!-- Stats Summary -->
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <span class="stat-label">Celkem odpracováno</span>
+                    <div class="stat-val" id="statYears">0 let</div>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Průměrná mzda</span>
+                    <div class="stat-val" id="statSalary">0 Kč</div>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Náhradní doba</span>
+                    <div class="stat-val" id="statSubstitute">0 let</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. ACTION -->
+        <button onclick="spocitejDuchod()" class="big-calc-btn">Spočítat možnosti důchodu</button>
+
+        <!-- 4. RESULTS -->
+        <div id="loading" class="loading-state hidden" style="margin-top:20px; text-align:center; color:#64748b;">
+            Počítám varianty...
+        </div>
+        <div class="results-container hidden" id="results"></div>
 
         <footer>
             <p>Výpočet je orientační a nenahrazuje oficiální rozhodnutí <a href="https://www.cssz.cz" target="_blank"
