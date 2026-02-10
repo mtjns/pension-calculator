@@ -1,3 +1,5 @@
+let segments = [];
+
 document.addEventListener('DOMContentLoaded', () => {
     const birthDateInput = document.getElementById('birthDate');
     if (birthDateInput) {
@@ -5,31 +7,118 @@ document.addEventListener('DOMContentLoaded', () => {
         today.setFullYear(today.getFullYear() - 15);
         birthDateInput.setAttribute('max', today.toISOString().split('T')[0]);
     }
+
+    // Add default segment (example)
+    addSegmentLogic('work', 35, 42000);
 });
 
-function toggleAdvanced() {
-    const panel = document.getElementById('advanced-options');
-    const btn = document.getElementById('toggleBtn');
+// --- SEGMENT LOGIC ---
 
-    if (panel.classList.contains('hidden')) {
-        panel.classList.remove('hidden');
-        btn.classList.add('active');
-        btn.setAttribute('aria-expanded', 'true');
-    } else {
-        panel.classList.add('hidden');
-        btn.classList.remove('active');
-        btn.setAttribute('aria-expanded', 'false');
+function addSegment() {
+    const type = document.getElementById('newSegType').value;
+    const duration = parseFloat(document.getElementById('newSegDuration').value);
+    const salary = parseFloat(document.getElementById('newSegSalary').value) || 0;
+
+    if (!duration || duration <= 0) {
+        alert("Zadejte prosím platnou délku trvání.");
+        return;
     }
+
+    addSegmentLogic(type, duration, salary);
+
+    // Clear inputs
+    document.getElementById('newSegDuration').value = '';
+    document.getElementById('newSegSalary').value = '';
 }
 
-async function spocitejDuchod() {
-    const salary = document.getElementById('salary').value;
-    const years = document.getElementById('years').value;
-    const birthDate = document.getElementById('birthDate').value;
+function addSegmentLogic(type, duration, salary) {
+    const id = Date.now();
+    segments.push({ id, type, duration, salary });
+    renderSegments();
+}
 
-    const gender = document.getElementById('gender').value;
+function removeSegment(id) {
+    segments = segments.filter(s => s.id !== id);
+    renderSegments();
+}
+
+function renderSegments() {
+    const list = document.getElementById('segmentList');
+    const timeline = document.getElementById('timelineBar');
+
+    list.innerHTML = '';
+    timeline.innerHTML = '';
+
+    // Calculate Totals for Display
+    let totalYears = 0;
+    let totalSubstitute = 0;
+    let weightedSalarySum = 0;
+    let salaryYears = 0;
+    let totalDuration = segments.reduce((sum, s) => sum + s.duration, 0);
+
+    segments.forEach(s => {
+        // 1. Render List Item
+        const item = document.createElement('div');
+        item.className = 'segment-item';
+
+        let badgeClass = 'sb-work';
+        let label = 'Práce';
+        if (s.type === 'study') { badgeClass = 'sb-study'; label = 'Studium'; }
+        if (s.type === 'none') { badgeClass = 'sb-none'; label = 'Nic'; }
+
+        let salaryText = s.type === 'work' ? `${s.salary.toLocaleString()} Kč` : '-';
+
+        item.innerHTML = `
+            <div class="segment-badge ${badgeClass}">${label}</div>
+            <div class="segment-info">
+                <span>${s.duration} let</span>
+                <span style="color: #64748b;">${salaryText}</span>
+            </div>
+            <button class="segment-remove" onclick="removeSegment(${s.id})">×</button>
+        `;
+        list.appendChild(item);
+
+        // 2. Render Timeline Bar
+        const bar = document.createElement('div');
+        bar.className = `timeline-segment ts-${s.type}`;
+        const widthPercent = (s.duration / totalDuration) * 100;
+        bar.style.width = `${widthPercent}%`;
+        bar.title = `${label}: ${s.duration} let`;
+        timeline.appendChild(bar);
+
+        // 3. Update Calc Totals
+        if (s.type === 'work') {
+            totalYears += s.duration;
+            weightedSalarySum += (s.salary * s.duration);
+            salaryYears += s.duration;
+        } else if (s.type === 'study') {
+            totalSubstitute += s.duration;
+        }
+    });
+
+    // Update Summary UI
+    const avgSalary = salaryYears > 0 ? Math.round(weightedSalarySum / salaryYears) : 0;
+
+    document.getElementById('displayYears').innerText = `${totalYears} let`;
+    document.getElementById('displaySalary').innerText = `${avgSalary.toLocaleString()} Kč`;
+    document.getElementById('displaySubstitute').innerText = `${totalSubstitute} let`;
+}
+
+// --- CALCULATION LOGIC ---
+
+async function spocitejDuchod() {
+    const birthDate = document.getElementById('birthDate').value;
     const children = document.getElementById('children').value;
-    const substituteYears = document.getElementById('studyYears').value;
+
+    // Get Gender from Radio
+    const genderEls = document.getElementsByName('gender');
+    let gender = 'M';
+    for (let radio of genderEls) {
+        if (radio.checked) {
+            gender = radio.value;
+            break;
+        }
+    }
 
     if (!birthDate) {
         alert("Chyba: Zadejte prosím platné datum narození.");
@@ -46,6 +135,24 @@ async function spocitejDuchod() {
         return;
     }
 
+    // CALCULATE DATA FROM SEGMENTS
+    let totalYears = 0;
+    let totalSubstitute = 0;
+    let weightedSalarySum = 0;
+    let salaryYears = 0;
+
+    segments.forEach(s => {
+        if (s.type === 'work') {
+            totalYears += s.duration;
+            weightedSalarySum += (s.salary * s.duration);
+            salaryYears += s.duration;
+        } else if (s.type === 'study') {
+            totalSubstitute += s.duration;
+        }
+    });
+
+    const salary = salaryYears > 0 ? Math.round(weightedSalarySum / salaryYears) : 0;
+
     const resultsDiv = document.getElementById('results');
     const loadingDiv = document.getElementById('loading');
 
@@ -56,11 +163,11 @@ async function spocitejDuchod() {
     try {
         const params = new URLSearchParams({
             salary,
-            years,
+            years: totalYears,
             birthDate,
             gender,
             children,
-            substituteYears
+            substituteYears: totalSubstitute
         });
 
         const response = await fetch(`/api/calculate?${params.toString()}`);
