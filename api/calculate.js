@@ -1,4 +1,4 @@
-const today = new Date();
+const dnes = new Date();
 const ZAKLADNI_VYMERA = 4440;
 const REDUKCNI_HRANICE_1 = 19346;
 const KOEF_REDUKNCI_HRANICE_1 = 0.26;
@@ -7,18 +7,22 @@ const MAXPREDCASNY = 3;
 const KOEFICIENT_NAHRADNI_DOBA = 0.8;
 const MIN_PROCENTNI_VYMERA = 770;
 
-class Person {
-    constructor({ vymerovaciZaklad, odpracovaneRoky, rocnik, pocetDeti, nahradniRoky, pohlavi }) {
+class Osoba {
+    constructor({ vymerovaciZaklad, odpracovaneRoky, datumNarozeni, pocetDeti, nahradniRoky, pohlavi }) {
         this.vymerovaciZaklad = vymerovaciZaklad;
         this.odpracovaneRoky = odpracovaneRoky;
-        this.rocnik = rocnik;
+        this.datumNarozeni = datumNarozeni; // Date object
+        this.rocnik = datumNarozeni.getFullYear();
         this.pocetDeti = pocetDeti;
         this.nahradniRoky = nahradniRoky;
         this.pohlavi = pohlavi;
     }
 
     get aktualniVek() {
-        return today.getFullYear() - this.rocnik;
+        // Přesný věk na roky (včetně desetinných míst)
+        const diffTime = Math.abs(dnes - this.datumNarozeni);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays / 365.25;
     }
 
     get efektivniDoba() {
@@ -75,45 +79,45 @@ class Person {
     }
 }
 
-class Scenario {
-    constructor(id, title, amount, desc, type) {
+class Scenar {
+    constructor(id, titulek, castka, popis, typ) {
         this.id = id;
-        this.title = title;
-        this.amount = amount;
-        this.desc = desc;
-        this.type = type;
+        this.title = titulek;
+        this.amount = castka;
+        this.desc = popis;
+        this.type = typ;
     }
 }
 
-function generateScenarios(person) {
-    let scenarios = [];
-    const rokyDoDuchodu = person.rokyDoDuchodu;
+function generujScenare(osoba) {
+    let scenare = [];
+    const rokyDoDuchodu = osoba.rokyDoDuchodu;
 
     // A) UŽ MÁ NÁROK (nebo přesluhuje)
     if (rokyDoDuchodu <= 0) {
-        const resultNow = person.spocitejDuchod(person.efektivniDoba, 0, 0);
-        const resultConcurrent = resultNow;
-        const resultDeferred = person.spocitejDuchod(person.efektivniDoba + 1, 0, 0.06);
+        const vysledekTed = osoba.spocitejDuchod(osoba.efektivniDoba, 0, 0);
+        const vysledekSoubeh = vysledekTed;
+        const vysledekOdlozeny = osoba.spocitejDuchod(osoba.efektivniDoba + 1, 0, 0.06);
 
-        scenarios = [
-            new Scenario(
+        scenare = [
+            new Scenar(
                 "now_pension",
                 "Řádný odchod do důchodu (Teď)",
-                resultNow,
+                vysledekTed,
                 "Okamžitý odchod. Máte splněn věk i dobu pojištění.",
                 "neutral"
             ),
-            new Scenario(
+            new Scenar(
                 "now_work_pension",
                 "Práce + Důchod (Souběh)",
-                resultConcurrent,
+                vysledekSoubeh,
                 "Pobíráte důchod i mzdu současně.",
                 "best"
             ),
-            new Scenario(
+            new Scenar(
                 "now_defer",
                 "Práce rok navíc (bez důchodu)",
-                resultDeferred,
+                vysledekOdlozeny,
                 "Pokud rok **nebudete** pobírat důchod a budete pracovat, získáte **bonus cca 6 %** natrvalo.",
                 "neutral"
             )
@@ -122,34 +126,34 @@ function generateScenarios(person) {
     // B) JEŠTĚ NEMÁ VĚK NA NÁROK NA DŮCHOD
     else {
         // 1. Řádný
-        const celkovaDoba = person.efektivniDoba + rokyDoDuchodu;
-        const resultRegular = person.spocitejDuchod(celkovaDoba, 0, 0);
+        const celkovaDoba = osoba.efektivniDoba + rokyDoDuchodu;
+        const vysledekRadny = osoba.spocitejDuchod(celkovaDoba, 0, 0);
 
-        scenarios.push(new Scenario(
+        scenare.push(new Scenar(
             "future_pension",
             "Řádný důchod",
-            resultRegular,
-            `Váš cílový důchod v roce ${Math.floor(today.getFullYear() + rokyDoDuchodu)}.`,
+            vysledekRadny,
+            `Váš cílový důchod v roce ${Math.floor(dnes.getFullYear() + rokyDoDuchodu)}.`,
             "best"
         ));
 
         // 2. Předčasný
         if (rokyDoDuchodu <= MAXPREDCASNY) {
             const reduction = (rokyDoDuchodu * 6) / 100;
-            const resultEarly = person.spocitejDuchod(person.efektivniDoba, reduction, 0);
+            const vysledekPredcasny = osoba.spocitejDuchod(osoba.efektivniDoba, reduction, 0);
 
-            scenarios.push(new Scenario(
+            scenare.push(new Scenar(
                 "early_pension",
                 "Předčasný důchod (Teď)",
-                resultEarly,
+                vysledekPredcasny,
                 `Odchod o **${rokyDoDuchodu.toFixed(1)} let dříve**. Důchod bude **trvale nižší** o sankci.`,
                 "warn"
             ));
         } else {
-            const ageEligible = person.duchodovyVek - MAXPREDCASNY;
-            const yearEligible = Math.floor(today.getFullYear() + rokyDoDuchodu - MAXPREDCASNY);
+            const ageEligible = osoba.duchodovyVek - MAXPREDCASNY;
+            const yearEligible = Math.floor(dnes.getFullYear() + rokyDoDuchodu - MAXPREDCASNY);
 
-            scenarios.push(new Scenario(
+            scenare.push(new Scenar(
                 "early_impossible",
                 "Předčasný důchod",
                 0,
@@ -160,8 +164,8 @@ function generateScenarios(person) {
 
         // 3. Přesluhování (pouze < 5 let do důchodu)
         if (rokyDoDuchodu <= 5) {
-            const resultMax = person.spocitejDuchod(celkovaDoba + 1, 0, 0.06);
-            scenarios.push(new Scenario(
+            const resultMax = osoba.spocitejDuchod(celkovaDoba + 1, 0, 0.06);
+            scenare.push(new Scenar(
                 "future_defer",
                 "Práce rok navíc (Přesluhování)",
                 resultMax,
@@ -170,33 +174,46 @@ function generateScenarios(person) {
             ));
         }
     }
-    return scenarios;
+    return scenare;
 }
 
 function parseInput(request) {
-    const { salary, years, birthYear, gender, children, substituteYears } = request.query || {};
+    const { salary, years, birthDate, gender, children, substituteYears } = request.query || {};
 
     const vymerovaciZaklad = parseFloat(salary) || 0;
     const odpracovaneRoky = parseFloat(years) || 0;
-    const rocnik = parseFloat(birthYear);
+    // Převedeme string data na Date objekt
+    const datumNarozeni = birthDate ? new Date(birthDate) : null;
     const pocetDeti = parseFloat(children) || 0;
     const nahradniRoky = parseFloat(substituteYears) || 0;
     const pohlavi = gender || 'M';
 
-    return { vymerovaciZaklad, odpracovaneRoky, rocnik, pocetDeti, nahradniRoky, pohlavi };
+    return { vymerovaciZaklad, odpracovaneRoky, datumNarozeni, pocetDeti, nahradniRoky, pohlavi };
 }
 
 function validateInput(data) {
     if (data.vymerovaciZaklad < 0 || data.odpracovaneRoky < 0 || data.pocetDeti < 0 || data.nahradniRoky < 0) {
         return new Error('Všechny číselné hodnoty musí být nezáporné.');
     }
-    else if (data.odpracovaneRoky - 1 > today.getFullYear() - data.rocnik) {
+
+    // Validace data
+    if (!data.datumNarozeni || isNaN(data.datumNarozeni.getTime())) {
+        return new Error('Zadejte platné datum narození.');
+    }
+
+    // Kontrola rozsahu roku (1920 - dnes minus 15 let)
+    const rokNarozeni = data.datumNarozeni.getFullYear();
+    const aktualniRok = dnes.getFullYear();
+
+    if (data.odpracovaneRoky - 1 > aktualniRok - rokNarozeni) {
         return new Error('Počet odpracovaných let nemůže být větší než váš aktuální věk.');
     }
-    else if (!data.rocnik || data.rocnik < 1920 || data.rocnik > today.getFullYear() - 15) {
-        return new Error('Neplatný ročník narození. Zadejte číslo mezi 1920 a ' + (today.getFullYear() - 15) + ".");
+
+    if (rokNarozeni < 1920 || rokNarozeni > aktualniRok - 15) {
+        return new Error('Neplatný ročník narození. Zadejte rok mezi 1920 a ' + (aktualniRok - 15) + ".");
     }
-    else if (data.pohlavi !== 'M' && data.pohlavi !== 'F') {
+
+    if (data.pohlavi !== 'M' && data.pohlavi !== 'F') {
         return new Error('Neplatné pohlaví. Zadejte "M" pro muže nebo "F" pro ženy.');
     }
     return null;
@@ -225,9 +242,9 @@ export default function handler(request, response) {
     }
 
     try {
-        const person = new Person(parsedData);
-        const scenarios = generateScenarios(person);
-        response.status(200).json({ scenarios });
+        const osoba = new Osoba(parsedData);
+        const scenare = generujScenare(osoba);
+        response.status(200).json({ scenarios: scenare });
     } catch (error) {
         console.error("Chyba výpočtu:", error);
         response.status(500).json({ error: "Interní chyba výpočtu." });

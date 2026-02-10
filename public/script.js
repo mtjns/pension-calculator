@@ -1,7 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const birthYearInput = document.getElementById('birthYear');
-    if (birthYearInput) {
-        birthYearInput.setAttribute('max', new Date().getFullYear() - 15);
+    const birthDateInput = document.getElementById('birthDate');
+    if (birthDateInput) {
+        const today = new Date();
+        today.setFullYear(today.getFullYear() - 15);
+        birthDateInput.setAttribute('max', today.toISOString().split('T')[0]);
     }
 });
 
@@ -20,19 +22,27 @@ function toggleAdvanced() {
     }
 }
 
-async function getDuchod() {
+async function spocitejDuchod() {
     const salary = document.getElementById('salary').value;
     const years = document.getElementById('years').value;
-    const birthYear = document.getElementById('birthYear').value;
+    const birthDate = document.getElementById('birthDate').value;
 
     const gender = document.getElementById('gender').value;
     const children = document.getElementById('children').value;
-    const substituteYears = document.getElementById('substituteYears').value;
+    const substituteYears = document.getElementById('studyYears').value;
 
-    const currentYear = new Date().getFullYear();
+    if (!birthDate) {
+        alert("Chyba: Zadejte prosím platné datum narození.");
+        return;
+    }
 
-    if (!birthYear || birthYear < 1920 || birthYear > (currentYear - 15)) {
-        alert("Chyba: Zadejte prosím platný ročník narození (např. 1968).");
+    const birthDateObj = new Date(birthDate);
+    const minDate = new Date('1920-01-01');
+    const maxDate = new Date();
+    maxDate.setFullYear(maxDate.getFullYear() - 15);
+
+    if (birthDateObj < minDate || birthDateObj > maxDate) {
+        alert("Chyba: Datum narození musí být mezi rokem 1920 a " + maxDate.getFullYear() + ".");
         return;
     }
 
@@ -47,7 +57,7 @@ async function getDuchod() {
         const params = new URLSearchParams({
             salary,
             years,
-            birthYear,
+            birthDate,
             gender,
             children,
             substituteYears
