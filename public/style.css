@@ -1,22 +1,14 @@
 :root {
-    /* Color Palette */
     --primary: #1e293b;
-    /* Dark Slate */
     --accent: #2563eb;
-    /* Royal Blue */
     --accent-hover: #1d4ed8;
     --bg-page: #f8fafc;
-    /* Light Grey Background */
     --bg-card: #ffffff;
     --border: #cbd5e1;
 
-    /* Result Card Colors */
     --color-best: #22c55e;
-    /* Green */
     --color-warn: #ef4444;
-    /* Red */
     --color-neutral: #eab308;
-    /* Yellow/Orange */
 }
 
 * {
@@ -38,7 +30,6 @@ body {
     margin: 0 auto;
 }
 
-/* --- Header --- */
 header {
     text-align: center;
     margin-bottom: 40px;
@@ -46,9 +37,9 @@ header {
 }
 
 h1 {
-    font-size: 3rem;
-    font-weight: 700;
-    margin: 20px 0 10px 0;
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0 0 10px 0;
     color: #0f172a;
     letter-spacing: -0.02em;
 }
@@ -59,7 +50,6 @@ h1 {
     margin: 0;
 }
 
-/* --- Card & Layout --- */
 .calculator-card {
     background: var(--bg-card);
     padding: 40px;
@@ -68,7 +58,6 @@ h1 {
     border: 1px solid var(--border);
 }
 
-/* Grid for Inputs */
 .input-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -107,6 +96,38 @@ select:focus {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
+/* File Upload Styling */
+.file-upload-container {
+    margin-bottom: 24px;
+    padding: 20px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    border: 1px dashed var(--border);
+}
+
+input[type="file"] {
+    padding: 8px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+input[type="file"]::file-selector-button {
+    margin-right: 15px;
+    padding: 8px 16px;
+    border: none;
+    background: var(--primary);
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+input[type="file"]::file-selector-button:hover {
+    background: #334155;
+}
+
 .input-wrapper {
     position: relative;
 }
@@ -131,15 +152,12 @@ select:focus {
     margin-top: 6px;
 }
 
-/* --- Advanced Toggle --- */
 .advanced-toggle {
     width: 100%;
     display: flex;
     justify-content: center;
-    /* Center aligned */
     align-items: center;
     gap: 8px;
-    /* Space between text and arrow */
 
     background: #f1f5f9;
     border: none;
@@ -195,7 +213,6 @@ select:focus {
     display: none !important;
 }
 
-/* --- Action Button --- */
 .action-area {
     margin-top: 32px;
 }
@@ -217,7 +234,6 @@ select:focus {
     background-color: var(--accent-hover);
 }
 
-/* --- Results --- */
 .results-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -233,7 +249,6 @@ select:focus {
     border-radius: 12px;
     border: 1px solid var(--border);
     border-top-width: 5px;
-    /* Colored top border */
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
@@ -257,7 +272,6 @@ select:focus {
     line-height: 1.6;
 }
 
-/* Result Colors */
 .card.best {
     border-top-color: var(--color-best);
 }
@@ -278,13 +292,6 @@ select:focus {
     border-top-color: var(--color-neutral);
 }
 
-.desc strong {
-    color: #0f172a;
-    /* Tmavší barva pro důraz */
-    font-weight: 700;
-}
-
-/* Loading */
 .loading-state {
     text-align: center;
     margin-top: 30px;
@@ -312,7 +319,7 @@ select:focus {
 
 footer {
     text-align: center;
-    margin-top: 100px;
+    margin-top: 60px;
     color: #94a3b8;
     font-size: 0.85rem;
 }

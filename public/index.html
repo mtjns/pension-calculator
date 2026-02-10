@@ -41,10 +41,17 @@
                 </div>
 
                 <div class="input-group">
-                    <label for="years">Odpracované roky</label min="0">
+                    <label for="years">Odpracované roky</label>
                     <input type="number" id="years" value="35">
                     <div class="hint">Zaměstnání a podnikání</div>
                 </div>
+            </div>
+
+            <!-- New File Upload Section -->
+            <div class="file-upload-container">
+                <label for="fileUpload">Nahrát data ze souboru (IDA)</label>
+                <input type="file" id="fileUpload" accept=".xml,.pdf,.json">
+                <div class="hint">Tato funkce zatím není aktivní.</div>
             </div>
 
             <button class="advanced-toggle" onclick="toggleAdvanced()" aria-expanded="false" id="toggleBtn">
@@ -72,15 +79,15 @@
                     </div>
 
                     <div class="input-group">
-                        <label for="substituteYears">Náhradní doby (roky)</label>
-                        <input type="number" id="substituteYears" value="0" min="0">
+                        <label for="studyYears">Náhradní doby (roky)</label>
+                        <input type="number" id="studyYears" value="0" min="0">
                         <small class="hint">Studium, vojna (z 80 %)</small>
                     </div>
                 </div>
             </div>
 
             <div class="action-area">
-                <button onclick="getDuchod()" id="btn-calc" class="primary-btn">Spočítat možnosti</button>
+                <button onclick="spocitejDuchod()" id="btn-calc" class="primary-btn">Spočítat možnosti</button>
             </div>
 
             <div id="loading" class="loading-state hidden">
