@@ -26,6 +26,7 @@ A web application designed to help users estimate their future old-age pension i
 ## Core Logic
 
 ### 1. Frontend (`public/script.js`)
+
 The frontend is responsible for collecting user data through an interactive "Journey Builder".
 
 * **Segment System:** Instead of entering a single number for "years worked", users build a timeline of segments (e.g., "Study 4 years", then "Work 5 years", then "Gap 1 year").
@@ -33,15 +34,16 @@ The frontend is responsible for collecting user data through an interactive "Jou
 * **Data Aggregation:** Before sending data to the API, the frontend calculates the start and end dates for each segment based on the user's birth date to create a chronological history.
 
 ### 2. Backend (`api/calculate.js`)
+
 The backend contains the legislative logic for the Czech pension system (Model 2025).
 
 * **Date Processing:** Iterates through the provided segments to calculate exact days of insurance.
-    * *Study Logic:* Applies specific coefficients (e.g., 0.8) to study periods.
+  * *Study Logic:* Applies specific coefficients (e.g., 0.8) to study periods.
 * **Earnings Indexing:** Uses a dictionary of **Year Coefficients (`YEAR_COEFS`)** to convert historical earnings into their present value (PV).
 * **Pension Formula:**
-    * **OVZ (Personal Assessment Base):** Calculates the average monthly income from indexed earnings.
-    * **Reduction:** Applies the official reduction thresholds (Redukční hranice) to the OVZ.
-    * **Calculation:** Computes the "Percentage Assessment" (1.5% per year of insurance) + "Basic Assessment" (Fixed amount).
+  * **OVZ (Personal Assessment Base):** Calculates the average monthly income from indexed earnings.
+  * **Reduction:** Applies the official reduction thresholds (Redukční hranice) to the OVZ.
+  * **Calculation:** Computes the "Percentage Assessment" (1.5% per year of insurance) + "Basic Assessment" (Fixed amount).
 * **Scenario Generation:**
-    * If the user has reached retirement age, it returns options for **Immediate Retirement**, **Concurrent Work & Pension**, and **Deferred Retirement**.
-    * If the user is younger, it projects **Regular Future Retirement**, **Early Retirement** (with penalties), or **Deferred Future Retirement**.
+  * If the user has reached retirement age, it returns options for **Immediate Retirement**, **Concurrent Work & Pension**, and **Deferred Retirement**.
+  * If the user is younger, it projects **Regular Future Retirement**, **Early Retirement** (with penalties), or **Deferred Future Retirement**.

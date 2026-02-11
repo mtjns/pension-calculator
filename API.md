@@ -30,7 +30,7 @@ The API returns a JSON object containing an array of scenarios.
 
 ### **Success Response (200 OK)**
 
-```
+```json
 {
   "scenarios": [
     {
@@ -46,7 +46,7 @@ The API returns a JSON object containing an array of scenarios.
 
 ### **Error Response (400 Bad Request)**
 
-```
+```json
 {
   "error": "Chybí datum narození."
 }
@@ -58,7 +58,7 @@ The API logic branches into two main paths based on whether the user has reached
 
 ### **A: User has reached retirement age**
 
-*(User is old enough to retire immediately)*
+#### (User is old enough to retire immediately)
 
 | ID                 | Title                       | Description                 | Type    |
 | ------------------ | --------------------------- | --------------------------- | ------- |
@@ -68,7 +68,7 @@ The API logic branches into two main paths based on whether the user has reached
 
 ### **B: User has NOT reached retirement age**
 
-*(User is younger than retirement age)*
+#### (User is younger than retirement age)*
 
 | ID                 | Title               | Description                                    | Type    |
 | ------------------ | ------------------- | ---------------------------------------------- | ------- |
