@@ -1,80 +1,47 @@
-# **API Documentation**
+# Czech Pension Calculator (Důchodová kalkulačka 2025)
 
-**Endpoint:** `GET /api/calculate`
+A web application designed to help users estimate their future old-age pension in the Czech Republic. It allows users to model their career history using detailed segments (work, study, gaps) and compares different retirement scenarios (regular, early, deferred).
 
-This API calculates retirement scenarios based on the user's input, returning a list of possible options (e.g., immediate retirement, early retirement, or deferred retirement).
+## Project Overview
 
-## **1\. Request Parameters**
+* **Frontend:** Vanilla HTML, CSS, and JavaScript. No frameworks or build steps required.
+* **Backend:** Vercel Serverless Functions (Node.js) handling the calculation logic.
+* **Deployment:** Optimized for Vercel.
 
-| Parameter       | Type   | Required        | Description                                                |
-| :-------------- | :----- | :-------------- | :--------------------------------------------------------- |
-| salary          | number | **Yes**         | Gross monthly salary in CZK.                               |
-| years           | number | **Yes**         | Total years of insurance (worked + substitute).            |
-| birthYear       | number | **Yes**         | Year of birth (e.g., 1965).                                |
-| gender          | string | No, default 'M' | 'M' (Male) or 'F' (Female).                                |
-| children        | number | No, default 0   | Number of raised children (affects women's pension age).   |
-| substituteYears | number | No, default 0   | Substitute periods (study, military).                       |
+## Project Structure
 
-## **2\. Response Format**
-
-The API returns a JSON object containing an array of scenarios.
-
-### **Success Response (200 OK)**
+```text
+/
+├── api/
+│   └── calculate.js       # The "Brain". Handles all math, legislation rules, and API responses.
+├── public/
+│   ├── index.html         # Main UI structure.
+│   ├── style.css          # Custom styling (CSS variables, responsive grid, card designs).
+│   ├── script.js          # Frontend logic: Segment builder, drag-and-drop, API calls.
+│   └── favicon.svg        # Application icon.
+├── API.md                 # Detailed API documentation.
+└── README.md              # Project documentation.
 ```
-{  
-  "scenarios": [  
-    {  
-      "id": "now_pension",  
-      "title": "Řádný odchod do důchodu (Teď)",  
-      "amount": 24500,  
-      "desc": "Okamžitý odchod. Máte splněn věk i dobu pojištění.",  
-      "type": "neutral"  
-    }
-  ]  
-}
-```
-### **Error Response (400 Bad Request)**
-```
-{  
-  "error": "Neplatný ročník narození. Zadejte rok mezi 1920 a 2010."  
-}
-```
-## **3\. Scenarios & IDs**
 
-The API logic branches into two main paths based on whether the user has reached their retirement age.
+## Core Logic
 
-### **A: User has reached retirement age**
+### 1. Frontend (`public/script.js`)
+The frontend is responsible for collecting user data through an interactive "Journey Builder".
 
-*(User is old enough to retire immediately)*
+* **Segment System:** Instead of entering a single number for "years worked", users build a timeline of segments (e.g., "Study 4 years", then "Work 5 years", then "Gap 1 year").
+* **Timeline Visualization:** Renders a visual bar representing the user's career relative to their retirement age.
+* **Data Aggregation:** Before sending data to the API, the frontend calculates the start and end dates for each segment based on the user's birth date to create a chronological history.
 
-| ID               | Title                       | Description                 | Type    |
-| :--------------- | :-------------------------- | :-------------------------- | :------ |
-| now_pension      | **Immediate Pension**       | Stop working, take pension. | neutral |
-| now_work_pension | **Concurrent (Souběh)**     | Work and receive pension.   | best    |
-| now_defer        | **Deferral (Přesluhování)** | Work without pension.       | neutral |
+### 2. Backend (`api/calculate.js`)
+The backend contains the legislative logic for the Czech pension system (Model 2025).
 
-### **B: User has NOT reached retirement age**
-
-*(User is younger than retirement age)*
-
-| ID               | Title               | Description                                    | Type    |
-| :--------------- | :------------------ | :--------------------------------------------- | :------ |
-| early_pension    | **Early Pension**   | User is eligable for early retirement          | warn    |
-| early_impossible | **Early (Blocked)** | User is too young for early retirement.        | neutral |
-| future_defer     | **Future Deferral** | Plan to work extra years in the future.        | neutral |
-| future_pension   | **Regular Future**  | The target pension at standard retirement age. | best    |
-
-## **4\. Field Reference**
-
-### **type**
-
-Used by the frontend to style the result cards.
-
-* **best**: Recommended option.  
-* **warn**: Use caution, e.g., penalties. 
-* **neutral**: Standard information.
-
-### **amount**
-
-* Returns a **whole number** (integer).  
-* If 0, it indicates the scenario is currently impossible (e.g., early\_impossible).
+* **Date Processing:** Iterates through the provided segments to calculate exact days of insurance.
+    * *Study Logic:* Applies specific coefficients (e.g., 0.8) to study periods.
+* **Earnings Indexing:** Uses a dictionary of **Year Coefficients (`YEAR_COEFS`)** to convert historical earnings into their present value (PV).
+* **Pension Formula:**
+    * **OVZ (Personal Assessment Base):** Calculates the average monthly income from indexed earnings.
+    * **Reduction:** Applies the official reduction thresholds (Redukční hranice) to the OVZ.
+    * **Calculation:** Computes the "Percentage Assessment" (1.5% per year of insurance) + "Basic Assessment" (Fixed amount).
+* **Scenario Generation:**
+    * If the user has reached retirement age, it returns options for **Immediate Retirement**, **Concurrent Work & Pension**, and **Deferred Retirement**.
+    * If the user is younger, it projects **Regular Future Retirement**, **Early Retirement** (with penalties), or **Deferred Future Retirement**.
