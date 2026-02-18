@@ -1,3 +1,9 @@
+/**
+ * @file Hlavní logika pro výpočet důchodu na základě zadaných dat o kariéře a osobních údajů.
+ * @see {@link ../rules.md} Detailní pravidla a výpočty
+ */
+
+
 const today = new Date();
 const ZAKLADNI_VYMERA = 4440; // 2025
 const REDUKCNI_HRANICE_1 = 19346;
@@ -9,7 +15,7 @@ const MIN_PROCENTNI_VYMERA = 770;
 const DATE_2010 = new Date('2010-01-01');
 
 // Přepočítací koeficienty pro úpravu vyměřovacích základů (odhad pro rok 2025 dle dat 2024)
-// Slouží k přepočtu výdělků z minulých let na současnou hodnotu peněz
+/** @see [OVZ-01: Indexace](../rules.md) */
 const YEAR_COEFS = {
     2024: 1.0000, 2023: 1.0845, 2022: 1.1567, 2021: 1.2289, 2020: 1.3012,
     2019: 1.3734, 2018: 1.4457, 2017: 1.5179, 2016: 1.5902, 2015: 1.6624,
@@ -59,6 +65,7 @@ function processSegments(segments) {
                 const hrubyVydelekRok = seg.salary * 12 * ratio;
 
                 // Aplikace inflačního koeficientu (indexace)
+                /** @see [OVZ-01: Indexace](../rules.md) */
                 const koeficient = YEAR_COEFS[y] || 1.0;
                 indexovaneVydelkyCelkem += (hrubyVydelekRok * koeficient);
             }
@@ -68,6 +75,7 @@ function processSegments(segments) {
             // Logika pro studium: Počítá se jen doba PŘED rokem 2010
             let efektivniDnyStudia = 0;
 
+            /** @see [OVZ-02: Studium do](../rules.md) */
             if (start < DATE_2010) {
                 if (end < DATE_2010) {
                     efektivniDnyStudia = days;
@@ -146,6 +154,7 @@ class Osoba {
 
     get redukovanyZaklad() {
         // Aplikace redukčních hranic na OVZ (Osobní vyměřovací základ)
+        /** @see [CALC-01: Redukční hranice](../rules.md) */
         if (this.prumernaMzda > REDUKCNI_HRANICE_1) {
             if (this.prumernaMzda > REDUKCNI_HRANICE_2) {
                 // Nad druhou hranici se započítává 26% z rozdílu mezi 1. a 2. hranicí
